@@ -35,39 +35,16 @@ d <- fread('2008/2008/200801.csv')
 
 # initialize unique temperature coordinate 
 tmp.coor <- d[1:max(d$Locat_ID), ]
-t.lon <- unique(tmp.coor$Longitude_X)
 
-lon.range <- lapply(1:nrow(v.coor), function(x) {
-  lon.dis <- abs(v.coor[x, ]$longitude - t.lon)
-  lon.range <- t.lon[which(lon.dis %in% sort(lon.dis, partial = 2)[1 : 2])]
-  return(lon.range)
+# calculate the closest temperature coordinate to each village
+temp.to.village.coor <-   lapply(1:nrow(v.coor), function(x) {
+  error.lon <- (v.coor[x, ]$longitude - tmp.coor$Longitude_X)
+  error.lat <- (v.coor[x, ]$latitude - tmp.coor$Latitude_Y)
+  rmse <- sqrt((error.lon^2 + error.lat ^2) / 2)
+  tmp.coor[which.min(rmse), ]
   })
 
-lat.range1 <- lapply(1:nrow(v.coor), function(x) {
-  t.lat <- tmp.coor[Longitude_X == lon.range[[x]][1], ]$Latitude_Y
-  lat.dis <- abs(v.coor[x, ]$latitude - t.lat)
-  lat.range1 <- t.lat[which(lat.dis %in% sort(lat.dis, partial = 2)[1 : 2])]
-  return(lat.range1)
-})
+temp.to.village.coor <- do.call(rbind, temp.to.village.coor)
+v.coor <- cbind(v.coor, temp.to.village.coor[, 2:3, with = F])
 
-lat.range2 <- lapply(1:nrow(v.coor), function(x) {
-  t.lat <- tmp.coor[Longitude_X == lon.range[[x]][2], ]$Latitude_Y
-  lat.dis <- abs(v.coor[x, ]$latitude - t.lat)
-  lat.range2 <- t.lat[which(lat.dis %in% sort(lat.dis, partial = 2)[1 : 2])]
-  return(lat.range2)
-})
-
-v.coor <-  lapply(1:nrow(v.coor), function(x) {
-  rs <- list()
-  new.v.coor <- cbind(v.coor[x, ], lon.range = lon.range[[x]][1], lat.range = lat.range1[[x]][1])
-  rs <- rbind(rs, new.v.coor)
-  new.v.coor <- cbind(v.coor[x, ], lon.range = lon.range[[x]][1], lat.range = lat.range1[[x]][2])
-  rs <- rbind(rs, new.v.coor)
-  new.v.coor <- cbind(v.coor[x, ], lon.range = lon.range[[x]][2], lat.range = lat.range2[[x]][1])
-  rs <- rbind(rs, new.v.coor)
-  new.v.coor <- cbind(v.coor[x, ], lon.range = lon.range[[x]][2], lat.range = lat.range2[[x]][2])
-  rs <- rbind(rs, new.v.coor)
-  return(rs)
-})
-v.coor <- do.call(rbind, v.coor)
 save(v.coor, file = 'village_temperature_location.R')
